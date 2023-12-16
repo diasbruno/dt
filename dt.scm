@@ -2,6 +2,8 @@
 
 (define stride-to-line 3)
 
+(define pipe-char #\x2502)
+
 (define printer
   (lambda (text)
     (display text)
@@ -10,7 +12,7 @@
 (define place-pipes
   (lambda (space dv count length is-last)
     (when (< count length)
-      (string-set! space (* dv count) (string-ref "│" 0))
+      (string-set! space (* dv count) pipe-char)
       (place-pipes space dv (+ 1 count) length is-last))))
 
 (define graph
