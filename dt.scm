@@ -4,35 +4,26 @@
 
 (define pipe-char #\x2502)
 
-(define printer
-  (lambda (text)
-    (display text)
-    (newline)))
-
-(define place-pipes
-  (lambda (space dv count length is-last)
-    (when (< count length)
-      (string-set! space (* dv count) pipe-char)
-      (place-pipes space dv (+ 1 count) length is-last))))
-
 (define graph
   (lambda (level is-last)
-    (let* ((pad (* (- level 1) stride-to-line))
-           (space (vector->string (make-vector pad #\space))))
-      (when (> level 1)
-        (place-pipes space stride-to-line 0 (- level 1) is-last))
-      space)))
+    (if (<= level 1)
+        ""
+        (let* ((space (vector->string (make-vector stride-to-line #\space))))
+          (when (not is-last)
+            (string-set! space 0 pipe-char))
+          space))))
 
 (define draw
-  (lambda (level current last text)
-    (printer
+  (lambda (level current last text lines)
+    (display
      (if (= level 0)
          text
          (string-append
-          (graph level (= 0 (- last current)))
+          lines
           (if (= 0 (- last current)) "└─" "├─")
           " "
-          text)))))
+          text)))
+    (newline)))
 
 (define directory?
   (lambda (name) (equal? 'directory (file-type name))))
@@ -46,34 +37,36 @@
 
 (define list-directory-sorted
   (lambda (base-path fs)
-    (file-sort
-     (map (lambda (f)
-            (cons (string-concatenate (list base-path f)
-                                      directory-separator)
-                  f))
-          fs))))
+    (define (xxx f)
+      (cons (string-concatenate (list base-path f)
+                                directory-separator)
+            f))
+    (file-sort (map xxx fs))))
 
 (define -traverse-directory
-  (lambda (level current last path filename)
-    (case (file-type path)
-      ((directory)
-       (draw level current last filename)
-       (let* ((fs (directory-files path))
-              (count (- (length fs) 1))
-              (next 0))
-         (for-each
-          (lambda (the-file)
-            (-traverse-directory
-             (+ 1 level)
-             next
-             count
-             (car the-file)
-             (cdr the-file))
-            (set! next (+ 1 next)))
-          (list-directory-sorted path fs))))
-      ((regular)
-       (draw level current last filename)))))
+  (lambda (level current last path filename line)
+    (let ((is-last (= last current)))
+      (case (file-type path)
+        ((directory)
+         (draw level current last filename line)
+         (let* ((fs (directory-files path))
+                (count (- (length fs) 1))
+                (next 0)
+                (next-line (string-append line (graph (+ 1 level) is-last))))
+           (for-each
+            (lambda (the-file)
+              (-traverse-directory
+               (+ 1 level)
+               next
+               count
+               (car the-file)
+               (cdr the-file)
+               next-line)
+              (set! next (+ 1 next)))
+            (list-directory-sorted path fs))))
+        ((regular)
+         (draw level current last filename line))))))
 
 (define traverse-directory
   (lambda (path)
-    (-traverse-directory 0 0 0 path path)))
+    (-traverse-directory 0 0 0 path path "")))
