@@ -70,3 +70,5 @@
 (define traverse-directory
   (lambda (path)
     (-traverse-directory 0 0 0 path path "")))
+
+(traverse-directory (car (command-args)))
