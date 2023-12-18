@@ -4,10 +4,17 @@
 
 (define pipe-char #\x2502)
 
+(define empty-string "")
+
+(define space-string " ")
+
+(define corner-string  "└─")
+(define divisor-string  "├─")
+
 (define graph
   (lambda (level is-last)
     (if (<= level 1)
-        ""
+        empty-string
         (let* ((space (vector->string (make-vector stride-to-line #\space))))
           (when (not is-last)
             (string-set! space 0 pipe-char))
@@ -20,8 +27,10 @@
          text
          (string-append
           lines
-          (if (= 0 (- last current)) "└─" "├─")
-          " "
+          (if (= 0 (- last current))
+              corner-string
+              divisor-string)
+          space-string
           text)))
     (newline)))
 
@@ -71,4 +80,7 @@
   (lambda (path)
     (-traverse-directory 0 0 0 path path "")))
 
-(traverse-directory (car (command-args)))
+(let ((path (if (= 0 (length (command-args)))
+               "."
+               (car (command-args)))))
+ (traverse-directory path))
